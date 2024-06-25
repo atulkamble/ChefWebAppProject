@@ -1,7 +1,5 @@
 # ChefWebAppProject
-Advanced Chef DevOps project, complete with code snippets and commands to help you automate the deployment and configuration of a web application stack using Chef.
-
-Sure! Here’s a detailed advanced Chef DevOps project, complete with code snippets and commands to help you automate the deployment and configuration of a web application stack using Chef.
+Here’s a detailed advanced Chef DevOps project, complete with code snippets and commands to help you automate the deployment and configuration of a web application stack using Chef.
 
 ### Project: Automated Deployment and Configuration with Chef
 
