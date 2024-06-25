@@ -1,7 +1,8 @@
-# ChefWebAppProject
-Here’s a detailed advanced Chef DevOps project, complete with code snippets and commands to help you automate the deployment and configuration of a web application stack using Chef.
+# Chef WebApp Project
 
-### Project: Automated Deployment and Configuration with Chef
+Below is a comprehensive advanced Chef DevOps project designed for deploying and configuring a web application on Amazon Linux 2023. This project covers all aspects from setting up the Chef environment to writing cookbooks, integrating with CI/CD tools, and monitoring the infrastructure.
+
+### Project: Automated Deployment and Configuration of a Web Application with Chef on Amazon Linux 2023
 
 #### Components:
 1. Chef Server Setup
@@ -14,12 +15,12 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
 
 ### 1. Chef Server Setup
 - **Install Chef Server:**
-  Follow the official Chef Server installation guide:
   ```bash
-  sudo apt-get update
-  sudo apt-get install -y chef-server-core
+  sudo yum update -y
+  sudo yum install -y chef-server-core
   sudo chef-server-ctl reconfigure
   ```
+
 - **Create an Admin User and Organization:**
   ```bash
   sudo chef-server-ctl user-create USER_NAME FIRST_NAME LAST_NAME EMAIL 'PASSWORD' --filename /path/to/USER_NAME.pem
@@ -29,19 +30,20 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
 ### 2. Workstation Configuration
 - **Install ChefDK:**
   ```bash
-  wget https://packages.chef.io/files/stable/chefdk/4.13.3/ubuntu/18.04/chefdk_4.13.3-1_amd64.deb
-  sudo dpkg -i chefdk_4.13.3-1_amd64.deb
+  wget https://packages.chef.io/files/stable/chefdk/4.13.3/el/7/chefdk-4.13.3-1.el7.x86_64.rpm
+  sudo rpm -Uvh chefdk-4.13.3-1.el7.x86_64.rpm
   ```
+
 - **Configure Knife:**
   ```bash
   knife configure
   ```
-  This will prompt you to provide the Chef Server URL, organization, and user details.
+  This will prompt you to provide the Chef Server URL, organization, and user details. 
 
 ### 3. Node Configuration
 - **Bootstrap Nodes:**
   ```bash
-  knife bootstrap NODE_IP -x USER -P PASSWORD --sudo --node-name NODE_NAME
+  knife bootstrap NODE_IP -x ec2-user -i /path/to/key.pem --sudo --node-name NODE_NAME
   ```
 
 ### 4. Cookbooks and Recipes
@@ -51,6 +53,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
   ```bash
   chef generate cookbook nginx
   ```
+
 - **nginx/recipes/default.rb:**
   ```ruby
   package 'nginx' do
@@ -61,28 +64,56 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
     action [:enable, :start]
   end
 
-  template '/etc/nginx/sites-available/default' do
-    source 'default.erb'
+  template '/etc/nginx/nginx.conf' do
+    source 'nginx.conf.erb'
     notifies :reload, 'service[nginx]', :delayed
   end
   ```
-- **nginx/templates/default/default.erb:**
+
+- **nginx/templates/default/nginx.conf.erb:**
   ```erb
-  server {
-      listen 80 default_server;
-      listen [::]:80 default_server;
+  user nginx;
+  worker_processes auto;
+  error_log /var/log/nginx/error.log;
+  pid /run/nginx.pid;
 
-      server_name _;
+  events {
+      worker_connections 1024;
+  }
 
-      location / {
-          proxy_pass http://localhost:3000;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
+  http {
+      log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+      access_log  /var/log/nginx/access.log  main;
+
+      sendfile            on;
+      tcp_nopush          on;
+      tcp_nodelay         on;
+      keepalive_timeout   65;
+      types_hash_max_size 2048;
+
+      include             /etc/nginx/mime.types;
+      default_type        application/octet-stream;
+
+      server {
+          listen       80 default_server;
+          listen       [::]:80 default_server;
+          server_name  _;
+          root         /usr/share/nginx/html;
+
+          location / {
+              proxy_pass http://localhost:3000;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
       }
   }
   ```
+
 - **Upload Cookbook:**
   ```bash
   knife cookbook upload nginx
@@ -93,9 +124,12 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
   ```bash
   chef generate cookbook myapp
   ```
+
 - **myapp/recipes/default.rb:**
   ```ruby
   package 'git'
+  package 'nodejs'
+  package 'npm'
 
   git '/srv/myapp' do
     repository 'https://github.com/your-repo/your-app.git'
@@ -115,6 +149,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
     action :run
   end
   ```
+
 - **Upload Cookbook:**
   ```bash
   knife cookbook upload myapp
@@ -125,13 +160,14 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
   ```bash
   chef generate cookbook mysql
   ```
+
 - **mysql/recipes/default.rb:**
   ```ruby
   package 'mysql-server' do
     action :install
   end
 
-  service 'mysql' do
+  service 'mysqld' do
     action [:enable, :start]
   end
 
@@ -140,6 +176,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
     not_if 'mysql -e "SHOW DATABASES LIKE \'myapp\';"'
   end
   ```
+
 - **Upload Cookbook:**
   ```bash
   knife cookbook upload mysql
@@ -152,6 +189,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
   chef gem install kitchen-vagrant
   chef gem install kitchen-inspec
   ```
+
 - **.kitchen.yml Example:**
   ```yaml
   ---
@@ -162,7 +200,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
     name: chef_zero
 
   platforms:
-    - name: ubuntu-18.04
+    - name: amazonlinux-2
 
   suites:
     - name: default
@@ -172,6 +210,7 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
         - recipe[mysql::default]
       attributes:
   ```
+
 - **Run Test Kitchen:**
   ```bash
   kitchen converge
@@ -211,11 +250,13 @@ Here’s a detailed advanced Chef DevOps project, complete with code snippets an
 ### 7. Monitoring and Reporting
 - **Install and Configure Chef Automate:**
   Follow the [Chef Automate installation guide](https://docs.chef.io/automate/install/).
+
 - **Configure Reporting:**
   ```bash
   chef-server-ctl enable-reporting
   ```
+
 - **Set Up Node Monitoring:**
   Use tools like InSpec to write compliance profiles and run them on nodes.
 
-This comprehensive project ensures that your infrastructure is automated, tested, and integrated with a CI/CD pipeline, while also being monitored and compliant.
+This project ensures that your infrastructure on Amazon Linux 2023 is automated, tested, and integrated with a CI/CD pipeline, while also being monitored and compliant.
