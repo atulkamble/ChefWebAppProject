@@ -38,9 +38,10 @@ Below is a comprehensive advanced Chef DevOps project designed for deploying and
   ```bash
   knife configure
   ```
-  This will prompt you to provide the Chef Server URL, organization, and user details.
 
-  ```
+```  
+This will prompt you to provide the Chef Server URL, organization, and user details.
+
 WARNING: No knife configuration file found. See https://docs.chef.io/config_rb/ for details.
 Please enter the chef server URL: [https://ip-172-31-33-80.ap-south-1.compute.internal/organizations/myorg]
 Please enter an existing username or clientname for the API: [ec2-user] ec2-user
@@ -50,7 +51,7 @@ You must place your client key in:
 Before running commands with Knife
 
 Knife configuration file written to /home/ec2-user/.chef/credentials
-  ```
+```
 
 ### 3. Node Configuration
 - **Bootstrap Nodes:**
